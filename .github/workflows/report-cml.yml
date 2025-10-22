@@ -47,12 +47,12 @@ jobs:
           
           echo "### 🔍 Matrice de confusion" >> report.md
           echo "" >> report.md
-          cml ![](./reports/confusion_matrix.png)" >> report.md
+          cml "![](./reports/confusion_matrix.png)" >> report.md
           echo "" >> report.md
           
           echo "### 📈 Importance des features" >> report.md
           echo "" >> report.md
-          cml ![](./reports/feature_importance.png)" >> report.md
+          cml "![](./reports/feature_importance.png)" >> report.md
           echo "" >> report.md
           
           cml comment create report.md
