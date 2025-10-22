@@ -15,7 +15,6 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
-      - uses: iterative/setup-cml@v1
       
       - name: Install dependencies
         run: |
@@ -33,7 +32,9 @@ jobs:
       - name: Create CML report
         env:
           REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |       
+        run: |
+          npm install -g @dvcorg/cml
+          
           echo "## 📊 Rapport d'entraînement - Exercice 2" > report.md
           echo "" >> report.md
           
