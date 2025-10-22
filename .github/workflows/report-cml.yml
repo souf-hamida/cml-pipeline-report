@@ -1,0 +1,67 @@
+name: CML Pipeline with Visualizations
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  train-and-report:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Train model
+        run: |
+          python train.py
+      
+      - name: Generate visualizations
+        run: |
+          python evaluate.py
+      
+      - name: Create CML report
+        env:
+          REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npm install -g @dvcorg/cml
+          
+          echo "## 📊 Rapport d'entraînement - Exercice 2" >> report.md
+          echo "" >> report.md
+          
+          echo "### Métriques du modèle" >> report.md
+          echo "" >> report.md
+          echo '```json' >> report.md
+          cat metrics.json >> report.md
+          echo '```' >> report.md
+          echo "" >> report.md
+          
+          echo "### 🔍 Matrice de confusion" >> report.md
+          echo "" >> report.md
+          cml publish reports/confusion_matrix.png --md >> report.md
+          echo "" >> report.md
+          
+          echo "### 📈 Importance des features" >> report.md
+          echo "" >> report.md
+          cml publish reports/feature_importance.png --md >> report.md
+          echo "" >> report.md
+          
+          cml comment create report.md
+
