@@ -1,59 +1,46 @@
-name: CML Pipeline with Visualizations
+name: CML Pipeline
+on: [push, pull_request, workflow_dispatch]
 
-on: [push]
-permissions: write-all
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
   train-and-report:
     runs-on: ubuntu-latest
-    
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-      
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-      
-      - name: Install dependencies
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+
+      - name: Install deps & train
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
-      
-      - name: Train model
-        run: |
-          python train.py
-      
-      - name: Generate visualizations
-        run: |
-          python evaluate.py
-      
-      - name: Create CML report
-        env:
-          REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          npm install -g @dvcorg/cml
-          
-          echo "## 📊 Rapport d'entraînement - Exercice 2" >> report.md
-          echo "" >> report.md
-          
-          echo "### Métriques du modèle" >> report.md
-          echo "" >> report.md
-          echo '```json' >> report.md
-          cat metrics.json >> report.md
-          echo '```' >> report.md
-          echo "" >> report.md
-          
-          echo "### 🔍 Matrice de confusion" >> report.md
-          echo "" >> report.md
-          cml publish reports/confusion_matrix.png --md >> report.md
-          echo "" >> report.md
-          
-          echo "### 📈 Importance des features" >> report.md
-          echo "" >> report.md
-          cml publish reports/feature_importance.png --md >> report.md
-          echo "" >> report.md
-          
-          cml comment create report.md
+          python train.py  # produit metrics.json et (optionnel) figures/*.png
 
+      - name: Build CML report
+        run: |
+          echo "## Métriques du modèle" > report.md
+          echo "" >> report.md
+          cat metrics.json >> report.md
+          # Exemple d'image inline si tu génères une figure:
+          if [ -f figures/confusion_matrix.png ]; then
+            echo "" >> report.md
+            echo "![inline](figures/confusion_matrix.png)" >> report.md
+          fi
+
+      - name: Install CML
+        run: npm install -g @dvcorg/cml
+
+      # PR (même dépôt)
+      - name: Comment PR with CML
+        if: ${{ github.event_name == 'pull_request' && !github.event.pull_request.head.repo.fork }}
+        env: { REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }} }
+        run: cml comment create --pr report.md
+
+      # Push (commentaire sur le commit)
+      - name: Comment commit with CML
+        if: ${{ github.event_name == 'push' }}
+        env: { REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }} }
+        run: cml comment create --commit-sha "$GITHUB_SHA" report.md
