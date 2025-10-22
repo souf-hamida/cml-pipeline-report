@@ -34,7 +34,7 @@ jobs:
         env:
           REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |       
-          echo "## 📊 Rapport d'entraînement - Exercice 2" >> report.md
+          echo "## 📊 Rapport d'entraînement - Exercice 2" > report.md
           echo "" >> report.md
           
           echo "### Métriques du modèle" >> report.md
