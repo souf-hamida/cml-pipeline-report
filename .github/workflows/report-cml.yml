@@ -1,40 +1,59 @@
-name: cml-simple
-on: [push]
+name: CML Pipeline with Visualizations
 
-permissions:
-  contents: write
+on: [push]
+permissions: write-all
 
 jobs:
-  run:
+  train-and-report:
     runs-on: ubuntu-latest
+    
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with: { python-version: '3.11' }
-      - uses: iterative/setup-cml@v1
-
-      - name: Install & run
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
+          pip install --upgrade pip
           pip install -r requirements.txt
-          python train.py
-          python evaluate.py   # doit créer metrics.json et reports/*.png
-
-      - name: Build report
-        shell: bash
+      
+      - name: Train model
         run: |
-          echo "## Rapport" > report.md
-          echo >> report.md
-          echo "### Métriques" >> report.md
-          echo '```json' >> report.md
-          cat metrics.json >> report.md || echo '{}' >> report.md
-          echo '```' >> report.md
-          echo >> report.md
-          [ -f reports/confusion_matrix.png ] && echo '![inline](reports/confusion_matrix.png)' >> report.md
-          [ -f reports/feature_importance.png ] && echo '![inline](reports/feature_importance.png)' >> report.md
-
-      - name: Post CML comment
+          python train.py
+      
+      - name: Generate visualizations
+        run: |
+          python evaluate.py
+      
+      - name: Create CML report
         env:
           REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CML_SEND_TELEMETRY: "false"
-        run: cml comment create --commit-sha "$GITHUB_SHA" report.md
+        run: |
+          npm install -g @dvcorg/cml
+          
+          echo "## 📊 Rapport d'entraînement - Exercice 2" > report.md
+          echo "" >> report.md
+          
+          echo "### Métriques du modèle" >> report.md
+          echo "" >> report.md
+          echo '```json' >> report.md
+          cat metrics.json >> report.md
+          echo '```' >> report.md
+          echo "" >> report.md
+          
+          echo "### 🔍 Matrice de confusion" >> report.md
+          echo "" >> report.md
+          cml "![](reports/confusion_matrix.png)" >> report.md
+          echo "" >> report.md
+          
+          echo "### 📈 Importance des features" >> report.md
+          echo "" >> report.md
+          cml "![](reports/feature_importance.png)" >> report.md
+          echo "" >> report.md
+          
+          cml comment create report.md
+
