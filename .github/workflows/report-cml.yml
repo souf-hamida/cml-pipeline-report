@@ -25,22 +25,32 @@ jobs:
           pip install -r requirements.txt
           python train.py
           python evaluate.py   # doit générer metrics.json et reports/*.png
+
+
       - name: Build report
         shell: bash
         run: |
           set -euo pipefail; set +H
-          {
-            echo "## 📊 Rapport"
-            echo
-            echo "### Métriques"
-            echo '```json'
-            cat metrics.json
-            echo '```'
-            echo
-            [ -f reports/confusion_matrix.png ] && echo '![inline](reports/confusion_matrix.png)'
-            [ -f reports/feature_importance.png ] && echo '![inline](reports/feature_importance.png)'
-            echo
-          } > report.md
+          # Start fresh
+          : > report.md
+          # Title + section
+          printf "## 📊 Rapport\n\n" >> report.md
+          printf "### Métriques\n\n" >> report.md
+          # Open code fence
+          printf '```json\n' >> report.md
+          # Insert metrics (fallback to {} if missing)
+          if [ -f metrics.json ]; then
+            cat metrics.json >> report.md
+          else
+            printf '{}\n' >> report.md
+          fi
+          # Close code fence
+          printf '\n```\n\n' >> report.md
+          # Images if they exist
+          [ -f reports/confusion_matrix.png ] && printf '![inline](reports/confusion_matrix.png)\n' >> report.md
+          [ -f reports/feature_importance.png ] && printf '![inline](reports/feature_importance.png)\n' >> report.md
+          printf '\n' >> report.md
+
 
       - name: Post CML comment
         env:
