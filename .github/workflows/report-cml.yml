@@ -1,59 +1,90 @@
 name: CML Pipeline with Visualizations
 
-on: [push]
-permissions: write-all
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write         # nécessaire pour commenter un commit sur push
+  pull-requests: write    # nécessaire pour commenter une PR
 
 jobs:
   train-and-report:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
-      
+        uses: actions/checkout@v4
+
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      
+
       - name: Install dependencies
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
-      
+
       - name: Train model
-        run: |
-          python train.py
-      
+        run: python train.py
+
       - name: Generate visualizations
+        run: python evaluate.py
+        # suppose que evaluate.py génère ./reports/confusion_matrix.png et ./reports/feature_importance.png
+
+      - name: Create CML report (Markdown)
+        shell: bash
         run: |
-          python evaluate.py
-      
-      - name: Create CML report
-        env:
-          REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          npm install -g @dvcorg/cml
-          
-          echo "## 📊 Rapport d'entraînement - Exercice 2" >> report.md
-          echo "" >> report.md
-          
+          set -euo pipefail
+          echo "## 📊 Rapport d'entraînement - Exercice 2" > report.md
+          echo >> report.md
+
           echo "### Métriques du modèle" >> report.md
-          echo "" >> report.md
+          echo >> report.md
           echo '```json' >> report.md
           cat metrics.json >> report.md
           echo '```' >> report.md
-          echo "" >> report.md
-          
-          echo "### 🔍 Matrice de confusion" >> report.md
-          echo "" >> report.md
-          cml ![](./reports/confusion_matrix.png)" >> report.md
-          echo "" >> report.md
-          
-          echo "### 📈 Importance des features" >> report.md
-          echo "" >> report.md
-          cml ![](./reports/feature_importance.png)" >> report.md
-          echo "" >> report.md
-          
-          cml comment create report.md
+          echo >> report.md
 
+          # Ajout conditionnel des visuels s'ils existent
+          if [ -f "./reports/confusion_matrix.png" ]; then
+            echo "### 🔍 Matrice de confusion" >> report.md
+            echo >> report.md
+            echo '![inline](./reports/confusion_matrix.png)' >> report.md
+            echo >> report.md
+          fi
+
+          if [ -f "./reports/feature_importance.png" ]; then
+            echo "### 📈 Importance des features" >> report.md
+            echo >> report.md
+            echo '![inline](./reports/feature_importance.png)' >> report.md
+            echo >> report.md
+          fi
+
+      - name: Install CML
+        run: npm install -g @dvcorg/cml
+
+      # Commente la PR (si PR depuis le même dépôt)
+      - name: CML comment on PR
+        if: ${{ github.event_name == 'pull_request' && !github.event.pull_request.head.repo.fork }}
+        env:
+          REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: cml comment create --pr report.md
+
+      # Commente le commit (si push)
+      - name: CML comment on commit
+        if: ${{ github.event_name == 'push' }}
+        env:
+          REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: cml comment create --commit-sha "$GITHUB_SHA" report.md
+
+      # (Optionnel) uploader le report en artifact téléchargeable
+      - name: Upload CML report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cml-report
+          path: report.md
