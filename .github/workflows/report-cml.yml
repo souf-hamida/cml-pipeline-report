@@ -1,19 +1,11 @@
 name: CML Pipeline with Visualizations
 
-on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+on: [push]
+permissions: write-all
 
 jobs:
   train-and-report:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
     
     steps:
       - name: Checkout repository
