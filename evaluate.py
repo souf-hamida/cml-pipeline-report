@@ -7,6 +7,12 @@ import numpy as np
 import joblib
 import json
 
+# dans evaluate.py
+from pathlib import Path
+Path("reports").mkdir(parents=True, exist_ok=True)
+# ... puis plt.savefig('reports/confusion_matrix.png', ...)
+
+
 # Charger les donnees (meme split que train.py)
 iris = load_iris()
 X, y = iris.data, iris.target

@@ -6,6 +6,13 @@ from sklearn.metrics import accuracy_score, classification_report
 import json
 import joblib
 
+
+# dans train.py
+from pathlib import Path
+Path("models").mkdir(parents=True, exist_ok=True)
+# ... puis joblib.dump(...)
+
+
 # Charger les donnees
 iris = load_iris()
 X, y = iris.data, iris.target
