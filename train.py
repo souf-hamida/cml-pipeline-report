@@ -7,7 +7,7 @@ import json
 import joblib
 
 
-# dans train.py
+# dans train.py OK
 from pathlib import Path
 Path("models").mkdir(parents=True, exist_ok=True)
 # ... puis joblib.dump(...)
@@ -36,7 +36,7 @@ joblib.dump(model, 'models/iris_model.pkl')
 # Sauvegarder les metriques
 metrics = {
     "accuracy": accuracy,
-    "n_estimators": 100,
+    "n_estimators": 1200,
     "test_size": len(X_test)
 }
 
