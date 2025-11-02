@@ -13,7 +13,6 @@ jobs:
         with: { python-version: '3.11' }
       
       - uses: iterative/setup-cml@v2
-        with: { vega: false }
 
       # <-- Ajout: crée les dossiers attendus par train.py / evaluate.py
       - name: Prepare folders
@@ -25,7 +24,6 @@ jobs:
           pip install -r requirements.txt
           python train.py
           python evaluate.py   # doit générer metrics.json et reports/*.png
-
 
       - name: Build report
         shell: bash
@@ -50,7 +48,6 @@ jobs:
           [ -f reports/confusion_matrix.png ] && printf '![inline](reports/confusion_matrix.png)\n' >> report.md
           [ -f reports/feature_importance.png ] && printf '![inline](reports/feature_importance.png)\n' >> report.md
           printf '\n' >> report.md
-
 
       - name: Post CML comment
         env:
