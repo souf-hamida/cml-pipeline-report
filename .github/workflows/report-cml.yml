@@ -25,34 +25,24 @@ jobs:
           python train.py
           python evaluate.py   # doit générer metrics.json et reports/*.png
 
-      - name: Build report
-        shell: bash
+      - name: Build CML report (compact)
         run: |
           set -euo pipefail; set +H
-          # Start fresh
-          : > report.md
-          # Title + section
-          printf "## 📊 Rapport\n\n" >> report.md
-          printf "### Métriques\n\n" >> report.md
-          # Open code fence
-          printf '```json\n' >> report.md
-          # Insert metrics (fallback to {} if missing)
-          if [ -f metrics.json ]; then
-            cat metrics.json >> report.md
-          else
-            printf '{}\n' >> report.md
-          fi
-          # Close code fence
-          printf '\n```\n\n' >> report.md
-          # Images if they exist
-          [ -f reports/confusion_matrix.png ] && printf '![inline](reports/confusion_matrix.png)\n' >> report.md
-          [ -f reports/feature_importance.png ] && printf '![inline](reports/feature_importance.png)\n' >> report.md
-          printf '\n' >> report.md
+          {
+            printf "## Rapport\n\n### Métriques\n\n\`\`\`json\n"
+            [ -s metrics.json ] && cat metrics.json || printf '{}\n'
+            printf "\n\`\`\`\n\n"
+            for img in reports/confusion_matrix.png reports/feature_importance.png; do
+              [ -f "$img" ] && printf '![inline](%s)\n' "$img"
+            done
+            printf '\n'
+          } > report.md
 
       - name: Post CML comment
         env:
           REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: cml comment create --target="commit/$GITHUB_SHA" report.md
+
 
 
         
